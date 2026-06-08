@@ -171,30 +171,10 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// ====================== 0. 等待 SDK 就绪 ======================
-function waitForSupabase(){
-    return new Promise(resolve => {
-        let count = 0;
-        let check = setInterval(() => {
-            if(typeof window.supabase !== 'undefined' && window.supabase.createClient){
-                clearInterval(check);
-                resolve(true);
-            }
-            count++;
-            if(count > 50){ // 5秒超时
-                clearInterval(check);
-                resolve(false);
-            }
-        }, 100);
-    });
-}
-
-// ====================== 1. Supabase 配置 ======================
+// ====================== 1. Supabase 配置（纯 fetch 方式，无需 SDK） ======================
 const SUPABASE_URL = 'https://eqteiiwvoxffvhqjavua.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxdGVpaXd2b3hmZnZocWphdnVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MzQ0OTMsImV4cCI6MjA5NjUxMDQ5M30.YcY2hQxqc0ZUHnLgZUdVknWR5LWn4_hc2s1ok20qB4k';
-let supabaseClient = null;
 
 const ADMIN_USER = 'user1'; // 唯一管理员
 const DEFAULT_USERS = {
@@ -246,21 +226,26 @@ let nowBetMid = null;
 let nowOddsMid = null;
 let saveLock = false; // 防止并发写入
 
-// ====================== 2. Supabase 数据读写 ======================
+// ====================== 2. Supabase 数据读写（纯 fetch） ======================
 async function saveData(){
-    if(!supabaseClient) return; // Supabase 不可用则跳过
     if(saveLock) return;
     saveLock = true;
     try {
-        let {error} = await supabaseClient
-            .from('game_data')
-            .upsert({
-                id: 1,
+        let res = await fetch(`${SUPABASE_URL}/rest/v1/game_data?id=eq.1`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'apikey': SUPABASE_KEY,
+                'Authorization': `Bearer ${SUPABASE_KEY}`,
+                'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify({
                 users: USER_LIST,
                 matches: matchData,
                 updated_at: new Date().toISOString()
-            });
-        if(error) throw error;
+            })
+        });
+        if(!res.ok) throw new Error(`HTTP ${res.status}`);
     } catch(e){
         console.error('保存数据失败',e);
     }
@@ -269,12 +254,15 @@ async function saveData(){
 
 async function loadData(){
     try {
-        let {data, error} = await supabaseClient
-            .from('game_data')
-            .select('*')
-            .eq('id', 1)
-            .single();
-        if(error && error.code !== 'PGRST116') throw error;
+        let res = await fetch(`${SUPABASE_URL}/rest/v1/game_data?id=eq.1&select=*`, {
+            headers: {
+                'apikey': SUPABASE_KEY,
+                'Authorization': `Bearer ${SUPABASE_KEY}`
+            }
+        });
+        if(!res.ok) throw new Error(`HTTP ${res.status}`);
+        let arr = await res.json();
+        let data = arr && arr.length>0 ? arr[0] : null;
         if(data){
             // 修复用户数据
             let dbUsers = data.users || {};
@@ -579,14 +567,19 @@ function calcMatch(idx){
     // 清除旧的 localStorage
     localStorage.removeItem('matchData');
     localStorage.removeItem('betUser');
-    // 等待 Supabase SDK 加载并初始化
-    let sdkReady = await waitForSupabase();
-    if(sdkReady){
-        try {
-            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-            console.log('Supabase 初始化成功');
-            let ok = await loadData();
-            if(!ok){
-                console.warn('Supabase 连接失败，使用本地默认数据');
-            }
-       
+    // 异步加载 Supabase 数据
+    try {
+        console.log('正在从 Supabase 加载数据...');
+        let ok = await loadData();
+        if(ok){
+            console.log('Supabase 数据加载成功');
+        } else {
+            console.warn('Supabase 连接失败，使用本地默认数据');
+        }
+    } catch(e){
+        console.error('初始化异常', e);
+    }
+})();
+</script>
+</body>
+</html>
