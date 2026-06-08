@@ -175,8 +175,23 @@
 <script>
 // ====================== 1. Supabase 配置 ======================
 const SUPABASE_URL = 'https://eqteiiwvoxffvhqjavua.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_Pt5t49VrXHqpqfcPV-6tfQ_lN6Qyf0u';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxdGVpaXd2b3hmZnZocWphdnVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MzQ0OTMsImV4cCI6MjA5NjUxMDQ5M30.YcY2hQxqc0ZUHnLgZUdVknWR5LWn4_hc2s1ok20qB4k';
+let supabase = null;
+// 等待 DOM 加载完成后再初始化
+function initSupabase(){
+    if(typeof window.supabase === 'undefined'){
+        console.error('Supabase JS SDK 未加载');
+        return false;
+    }
+    try {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        console.log('Supabase 初始化成功');
+        return true;
+    } catch(e){
+        console.error('Supabase 初始化失败', e);
+        return false;
+    }
+}
 
 const ADMIN_USER = 'user1'; // 唯一管理员
 const DEFAULT_USERS = {
@@ -230,10 +245,10 @@ let saveLock = false; // 防止并发写入
 
 // ====================== 2. Supabase 数据读写 ======================
 async function saveData(){
+    if(!supabase) return; // Supabase 不可用则跳过
     if(saveLock) return;
     saveLock = true;
     try {
-        // 先尝试更新已有记录
         let {error} = await supabase
             .from('game_data')
             .upsert({
@@ -553,16 +568,24 @@ function calcMatch(idx){
 
 // ====================== 9. 初始化 ======================
 (async function init(){
+    // 先用本地数据兜底
+    USER_LIST = JSON.parse(JSON.stringify(DEFAULT_USERS));
+    matchData = JSON.parse(JSON.stringify(INIT_MATCHES));
     hideAll();
     document.getElementById('loginPage').classList.remove('hidden');
-    // 显示加载状态
-    let loading = await loadData();
-    if(!loading){
-        console.warn('Supabase 连接失败，使用本地默认数据');
-    }
-    // 清除旧的 localStorage 数据（避免混淆）
+    // 清除旧的 localStorage
     localStorage.removeItem('matchData');
     localStorage.removeItem('betUser');
+    // 初始化 Supabase
+    let sdkLoaded = initSupabase();
+    if(sdkLoaded && supabase){
+        let ok = await loadData();
+        if(!ok){
+            console.warn('Supabase 连接失败，使用本地默认数据（数据不会共享）');
+        }
+    } else {
+        console.warn('Supabase 未初始化，使用本地默认数据');
+    }
 })();
 </script>
 </body>
