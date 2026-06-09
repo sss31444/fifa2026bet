@@ -251,7 +251,7 @@ async function saveData(){
             let errText = await res.text();
             throw new Error(`HTTP ${res.status}: ${errText}`);
         }
-        console.log('数据已保存到 Supabase');
+        console.log('数据已保存到 Supabase，user1 coin:', USER_LIST.user1.coin, 'record:', USER_LIST.user1.record.length);
     } catch(e){
         console.error('保存数据失败',e);
     }
@@ -271,9 +271,11 @@ async function loadData(){
             throw new Error(`HTTP ${res.status}: ${errText}`);
         }
         let arr = await res.json();
+        console.log('Supabase 原始返回:', JSON.stringify(arr));
         let data = arr && arr.length>0 ? arr[0] : null;
-        console.log('Supabase 查询结果:', data ? '有数据' : '无数据');
         if(data){
+            console.log('Supabase 读到 users:', JSON.stringify(data.users));
+            console.log('Supabase 读到 matches 条数:', data.matches ? data.matches.length : 0);
             // 修复用户数据
             let dbUsers = data.users || {};
             for(let key of ['user1','user2','user3','user4']){
@@ -590,6 +592,4 @@ function calcMatch(idx){
         console.error('初始化异常', e);
     }
 })();
-</script>
-</body>
-</html>
+</scrip
