@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2026世界杯·四人虚拟投注</title>
+    <title>2026世界杯·四人虚拟投注 | 赛前截止投注</title>
     <style>
         * {
             margin: 0;
@@ -26,6 +26,7 @@
             border-radius: 12px;
             padding: 16px;
             margin-bottom: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         }
         input, select, button {
             width: 100%;
@@ -39,7 +40,10 @@
             background: #2584ff;
             color: white;
             font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
         }
+        button:hover { opacity: 0.9; transform: scale(0.98);}
         button.danger {
             background: #ff4d4f;
         }
@@ -55,6 +59,7 @@
             display: flex;
             justify-content: space-between;
             padding:8px 0;
+            border-bottom: 1px solid #2a4580;
         }
         .tip {
             font-size:13px;
@@ -66,6 +71,20 @@
             color:#ffd700;
             margin:4px 0;
         }
+        .deadline-tag {
+            font-size: 12px;
+            color: #ffaa66;
+            background: #2a4070;
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 20px;
+            margin-top: 5px;
+        }
+        .refresh-btn {
+            background: #2a6b3c;
+            padding: 8px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -73,11 +92,12 @@
     <!-- 登录页 -->
     <div id="loginPage">
         <div class="card">
-            <h2>2026世界杯·四人虚拟投注</h2>
-            <p class="tip">纯虚拟金币，无现金交易</p>
-            <input type="text" id="username" placeholder="用户名">
-            <input type="password" id="pwd" placeholder="密码">
+            <h2>⚽ 2026世界杯·四人虚拟投注</h2>
+            <p class="tip">纯虚拟金币娱乐 | 投注截止: 比赛日当天00:00（赛前封盘）</p>
+            <input type="text" id="username" placeholder="用户名 (user1~user4)">
+            <input type="password" id="pwd" placeholder="密码 (123456)">
             <button onclick="login()">登录</button>
+            <button onclick="forceRefreshData()" style="background:#555;">🔄 刷新数据库同步</button>
         </div>
     </div>
 
@@ -85,19 +105,20 @@
     <div id="mainPage" class="hidden">
         <div class="card">
             <div style="display:flex;justify-content:space-between;align-items:center">
-                <h3>欢迎 <span id="curUser"></span></h3>
-                <span>余额：<b id="coinNum">0</b> 币</span>
+                <h3>🏆 欢迎 <span id="curUser"></span></h3>
+                <span>💰 余额：<b id="coinNum">0</b> 币</span>
             </div>
-            <div style="display:flex;gap:8px;margin-top:10px">
-                <button style="flex:1" onclick="showRank()">排行榜</button>
-                <button style="flex:1" onclick="showRecord()">我的投注</button>
-                <button id="adminBtn" style="flex:1;background:#096;display:none" onclick="showAdmin()">管理比赛</button>
+            <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+                <button style="flex:1" onclick="showRank()">🏅 排行榜</button>
+                <button style="flex:1" onclick="showRecord()">📋 我的投注</button>
+                <button style="flex:1;background:#2a6b3c;" onclick="syncAndRefresh()">🔄 同步数据</button>
+                <button id="adminBtn" style="flex:1;background:#096;display:none" onclick="showAdmin()">⚙️ 管理比赛</button>
             </div>
-            <button class="danger" style="margin-top:10px" onclick="logout()">退出登录</button>
+            <button class="danger" style="margin-top:10px" onclick="logout()">🚪 退出登录</button>
         </div>
 
         <div class="card">
-            <h3>赛事列表（可投注）</h3>
+            <h3>📅 2026世界杯赛事（可投注）</h3>
             <div id="matchList"></div>
         </div>
     </div>
@@ -105,26 +126,26 @@
     <!-- 排行榜 -->
     <div id="rankPage" class="hidden">
         <div class="card">
-            <h3>四人金币排行榜</h3>
+            <h3>🏅 金币排行榜 <button class="refresh-btn" style="width:auto;padding:5px 10px;margin-left:10px;" onclick="refreshRankData()">🔄 刷新</button></h3>
             <div id="rankBox"></div>
-            <button onclick="backMain()">返回</button>
+            <button onclick="backMain()">🔙 返回</button>
         </div>
     </div>
 
     <!-- 我的投注记录 -->
     <div id="recordPage" class="hidden">
         <div class="card">
-            <h3>我的全部投注</h3>
+            <h3>📜 我的全部投注</h3>
             <div id="recordBox"></div>
-            <button onclick="backMain()">返回</button>
+            <button onclick="backMain()">🔙 返回</button>
         </div>
     </div>
 
     <!-- 管理员页面（仅user1可见） -->
     <div id="adminPage" class="hidden">
         <div class="card">
-            <h3>比赛管理（管理员专用）</h3>
-            <p class="tip">每场可单独设置 主胜/平局/客胜 赔率</p>
+            <h3>🛠️ 比赛管理（管理员专用）</h3>
+            <p class="tip">可调整赔率、录入比分并结算（投注截止时间自动生效）</p>
             <button onclick="backMain()" style="margin-bottom:12px">← 返回主页</button>
             <div id="adminMatchList"></div>
             <button onclick="backMain()" style="margin-top:12px">← 返回主页</button>
@@ -132,52 +153,52 @@
     </div>
 
     <!-- 投注弹窗 -->
-    <div id="betLayer" class="hidden" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);padding:20px;">
+    <div id="betLayer" class="hidden" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);padding:20px;z-index:1000;">
         <div class="card">
             <h4 id="betTitle"></h4>
             <div class="odds-info" id="betOddsText"></div>
+            <div class="tip" id="deadlineMsg" style="color:#ffaa66;"></div>
             <select id="betSelect">
-                <option value="home">主队胜</option>
-                <option value="draw">平局</option>
-                <option value="away">客队胜</option>
+                <option value="home">🏠 主队胜</option>
+                <option value="draw">🤝 平局</option>
+                <option value="away">✈️ 客队胜</option>
             </select>
             <input type="number" id="betNum" placeholder="投注金币数量" min="1">
-            <button onclick="submitBet()">确认投注</button>
-            <button class="danger" onclick="closeBet()">取消</button>
+            <button onclick="submitBet()">✅ 确认投注</button>
+            <button class="danger" onclick="closeBet()">❌ 取消</button>
         </div>
     </div>
 
     <!-- 赔率编辑弹窗（管理员） -->
-    <div id="oddsLayer" class="hidden" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);padding:20px;">
+    <div id="oddsLayer" class="hidden" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);padding:20px;z-index:1000;">
         <div class="card">
-            <h4>设置赔率：<span id="oddsMatchTitle"></span></h4>
+            <h4>🎲 设置赔率：<span id="oddsMatchTitle"></span></h4>
             <input type="number" id="oddsHome" placeholder="主胜赔率" step="0.01" min="1.01">
             <input type="number" id="oddsDraw" placeholder="平局赔率" step="0.01" min="1.01">
             <input type="number" id="oddsAway" placeholder="客胜赔率" step="0.01" min="1.01">
-            <button onclick="saveOdds()">保存赔率</button>
+            <button onclick="saveOdds()">💾 保存赔率</button>
             <button class="danger" onclick="closeOdds()">取消</button>
         </div>
     </div>
 
     <!-- 比分录入弹窗（管理员） -->
-    <div id="scoreLayer" class="hidden" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);padding:20px;">
+    <div id="scoreLayer" class="hidden" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);padding:20px;z-index:1000;">
         <div class="card">
-            <h4>录入比分：<span id="scoreMatchTitle"></span></h4>
-            <p class="tip">输入最终比分，保存后自动结算</p>
+            <h4>📝 录入比分：<span id="scoreMatchTitle"></span></h4>
+            <p class="tip">输入最终比分，保存后自动结算所有投注</p>
             <input type="text" id="scoreInput" placeholder="格式：2-1">
-            <button onclick="confirmScore()">保存比分并结算</button>
+            <button onclick="confirmScore()">⚡ 保存比分并结算</button>
             <button class="danger" onclick="closeScore()">取消</button>
         </div>
     </div>
 </div>
 
 <script>
-// ====================== 1. Supabase 配置（纯 fetch 方式，无需 SDK） ======================
+// ====================== 1. Supabase 配置 ======================
 const SUPABASE_URL = 'https://eqteiiwvoxffvhqjavua.supabase.co';
-// key 拆分为两段，避免被自动扫描替换
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9' + '.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxdGVpaXd2b3hmZnZocWphdnVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MzQ0OTMsImV4cCI6MjA5NjUxMDQ5M30' + '.YcY2hQxqc0ZUHnLgZUdVknWR5LWn4_hc2s1ok20qB4k';
 
-const ADMIN_USER = 'user1'; // 唯一管理员
+const ADMIN_USER = 'user1';
 const DEFAULT_USERS = {
     user1: {pwd:'123456', coin:10000, record:[]},
     user2: {pwd:'123456', coin:10000, record:[]},
@@ -185,39 +206,32 @@ const DEFAULT_USERS = {
     user4: {pwd:'123456', coin:10000, record:[]}
 };
 
-// 2026世界杯 12个小组 小组赛
+// 2026世界杯 小组赛 (添加日期字段用于投注截止校验)
 const INIT_MATCHES = [
-    // 2026-06-11
-    {home:'墨西哥', away:'南非', odds:{home:1.34, draw:3.92, away:7.85}, status:0, result:''},
-    {home:'韩国', away:'捷克', odds:{home:2.43, draw:2.84, away:2.70}, status:0, result:''},
-    // 2026-06-12
-    {home:'加拿大', away:'波黑', odds:{home:1.59, draw:3.38, away:4.90}, status:0, result:''},
-    {home:'美国', away:'巴拉圭', odds:{home:1.87, draw:3.02, away:3.80}, status:0, result:''},
-    // 2026-06-13
-    {home:'卡塔尔', away:'瑞士', odds:{home:1.98, draw:3.85, away:2.74}, status:0, result:''},
-    {home:'巴西', away:'摩洛哥', odds:{home:1.53, draw:3.50, away:5.25}, status:0, result:''},
-    {home:'海地', away:'苏格兰', odds:{home:7.65, draw:4.25, away:1.31}, status:0, result:''},
-    {home:'澳大利亚', away:'土耳其', odds:{home:5.15, draw:3.45, away:1.55}, status:0, result:''},
-    // 2026-06-14
-    {home:'德国', away:'库拉索', odds:{home:1.94, draw:4.60, away:2.52}, status:0, result:''},
-    {home:'荷兰', away:'日本', odds:{home:1.72, draw:3.30, away:4.10}, status:0, result:''},
-    {home:'科特迪瓦', away:'厄瓜多尔', odds:{home:3.36, draw:2.65, away:2.20}, status:0, result:''},
-    {home:'瑞典', away:'突尼斯', odds:{home:1.74, draw:3.70, away:4.30}, status:0, result:''},
-    // 2026-06-15
-    {home:'西班牙', away:'佛得角', odds:{home:1.85, draw:4.00, away:2.95}, status:0, result:''},
-    {home:'比利时', away:'埃及', odds:{home:1.46, draw:3.65, away:5.85}, status:0, result:''},
-    {home:'沙特', away:'乌拉圭', odds:{home:2.95, draw:4.35, away:1.28}, status:0, result:''},
-    {home:'伊朗', away:'新西兰', odds:{home:1.56, draw:3.30, away:5.40}, status:0, result:''},
-    // 2026-06-16
-    {home:'法国', away:'塞内加尔', odds:{home:1.38, draw:3.90, away:6.75}, status:0, result:''},
-    {home:'伊拉克', away:'挪威', odds:{home:2.03, draw:3.89, away:2.64}, status:0, result:''},
-    {home:'阿根廷', away:'阿尔及利亚', odds:{home:1.28, draw:4.25, away:8.90}, status:0, result:''},
-    {home:'奥地利', away:'约旦', odds:{home:1.86, draw:3.49, away:3.32}, status:0, result:''},
-    // 2026-06-17
-    {home:'葡萄牙', away:'刚果金', odds:{home:1.14, draw:5.70, away:13.00}, status:0, result:''},
-    {home:'英格兰', away:'克罗地亚', odds:{home:2.86, draw:3.75, away:1.95}, status:0, result:''},
-    {home:'加纳', away:'巴拿马', odds:{home:1.94, draw:3.20, away:3.60}, status:0, result:''},
-    {home:'乌兹别克', away:'哥伦比亚', odds:{home:9.00, draw:4.45, away:1.26}, status:0, result:''}
+    {home:'墨西哥', away:'南非', odds:{home:1.34, draw:3.92, away:7.85}, status:0, result:'', matchDate:'2026-06-11'},
+    {home:'韩国', away:'捷克', odds:{home:2.43, draw:2.84, away:2.70}, status:0, result:'', matchDate:'2026-06-11'},
+    {home:'加拿大', away:'波黑', odds:{home:1.59, draw:3.38, away:4.90}, status:0, result:'', matchDate:'2026-06-12'},
+    {home:'美国', away:'巴拉圭', odds:{home:1.87, draw:3.02, away:3.80}, status:0, result:'', matchDate:'2026-06-12'},
+    {home:'卡塔尔', away:'瑞士', odds:{home:1.98, draw:3.85, away:2.74}, status:0, result:'', matchDate:'2026-06-13'},
+    {home:'巴西', away:'摩洛哥', odds:{home:1.53, draw:3.50, away:5.25}, status:0, result:'', matchDate:'2026-06-13'},
+    {home:'海地', away:'苏格兰', odds:{home:7.65, draw:4.25, away:1.31}, status:0, result:'', matchDate:'2026-06-13'},
+    {home:'澳大利亚', away:'土耳其', odds:{home:5.15, draw:3.45, away:1.55}, status:0, result:'', matchDate:'2026-06-13'},
+    {home:'德国', away:'库拉索', odds:{home:1.94, draw:4.60, away:2.52}, status:0, result:'', matchDate:'2026-06-14'},
+    {home:'荷兰', away:'日本', odds:{home:1.72, draw:3.30, away:4.10}, status:0, result:'', matchDate:'2026-06-14'},
+    {home:'科特迪瓦', away:'厄瓜多尔', odds:{home:3.36, draw:2.65, away:2.20}, status:0, result:'', matchDate:'2026-06-14'},
+    {home:'瑞典', away:'突尼斯', odds:{home:1.74, draw:3.70, away:4.30}, status:0, result:'', matchDate:'2026-06-14'},
+    {home:'西班牙', away:'佛得角', odds:{home:1.85, draw:4.00, away:2.95}, status:0, result:'', matchDate:'2026-06-15'},
+    {home:'比利时', away:'埃及', odds:{home:1.46, draw:3.65, away:5.85}, status:0, result:'', matchDate:'2026-06-15'},
+    {home:'沙特', away:'乌拉圭', odds:{home:2.95, draw:4.35, away:1.28}, status:0, result:'', matchDate:'2026-06-15'},
+    {home:'伊朗', away:'新西兰', odds:{home:1.56, draw:3.30, away:5.40}, status:0, result:'', matchDate:'2026-06-15'},
+    {home:'法国', away:'塞内加尔', odds:{home:1.38, draw:3.90, away:6.75}, status:0, result:'', matchDate:'2026-06-16'},
+    {home:'伊拉克', away:'挪威', odds:{home:2.03, draw:3.89, away:2.64}, status:0, result:'', matchDate:'2026-06-16'},
+    {home:'阿根廷', away:'阿尔及利亚', odds:{home:1.28, draw:4.25, away:8.90}, status:0, result:'', matchDate:'2026-06-16'},
+    {home:'奥地利', away:'约旦', odds:{home:1.86, draw:3.49, away:3.32}, status:0, result:'', matchDate:'2026-06-16'},
+    {home:'葡萄牙', away:'刚果金', odds:{home:1.14, draw:5.70, away:13.00}, status:0, result:'', matchDate:'2026-06-17'},
+    {home:'英格兰', away:'克罗地亚', odds:{home:2.86, draw:3.75, away:1.95}, status:0, result:'', matchDate:'2026-06-17'},
+    {home:'加纳', away:'巴拿马', odds:{home:1.94, draw:3.20, away:3.60}, status:0, result:'', matchDate:'2026-06-17'},
+    {home:'乌兹别克', away:'哥伦比亚', odds:{home:9.00, draw:4.45, away:1.26}, status:0, result:'', matchDate:'2026-06-17'}
 ];
 
 let loginUser = '';
@@ -225,14 +239,28 @@ let USER_LIST = {};
 let matchData = [];
 let nowBetMid = null;
 let nowOddsMid = null;
-let saveLock = false; // 防止并发写入
+let saveLock = false;
 
-// ====================== 2. Supabase 数据读写（纯 fetch） ======================
+// ========== 辅助函数 ==========
+function isBetDeadlinePassed(matchDateStr) {
+    if (!matchDateStr) return false;
+    const [year, month, day] = matchDateStr.split('-').map(Number);
+    const deadline = new Date(year, month - 1, day, 0, 0, 0);
+    const now = new Date();
+    return now >= deadline;
+}
+
+function canPlaceBet(match) {
+    if (!match || match.status !== 0) return false;
+    if (isBetDeadlinePassed(match.matchDate)) return false;
+    return true;
+}
+
+// ====================== 2. Supabase 数据读写 ======================
 async function saveData(){
     if(saveLock) return;
     saveLock = true;
     try {
-        // 用 POST + upsert 方式，确保数据行存在时更新、不存在时创建
         let res = await fetch(`${SUPABASE_URL}/rest/v1/game_data`, {
             method: 'POST',
             headers: {
@@ -250,11 +278,12 @@ async function saveData(){
         });
         if(!res.ok){
             let errText = await res.text();
-            throw new Error(`HTTP ${res.status}: ${errText}`);
+            console.warn(`保存失败: ${errText}`);
+        } else {
+            console.log('✅ 数据已保存到云端');
         }
-        console.log('数据已保存到 Supabase，user1 coin:', USER_LIST.user1.coin, 'record:', USER_LIST.user1.record.length);
     } catch(e){
-        console.error('保存数据失败',e);
+        console.error('保存异常',e);
     }
     saveLock = false;
 }
@@ -262,23 +291,19 @@ async function saveData(){
 async function loadData(){
     try {
         let res = await fetch(`${SUPABASE_URL}/rest/v1/game_data?id=eq.1&select=*`, {
-            headers: {
-                'apikey': SUPABASE_KEY,
+            headers: { 
+                'apikey': SUPABASE_KEY, 
                 'Authorization': `Bearer ${SUPABASE_KEY}`
             }
         });
-        if(!res.ok){
-            let errText = await res.text();
-            throw new Error(`HTTP ${res.status}: ${errText}`);
-        }
+        if(!res.ok) throw new Error(`HTTP ${res.status}`);
         let arr = await res.json();
-        console.log('Supabase 原始返回:', JSON.stringify(arr));
-        let data = arr && arr.length>0 ? arr[0] : null;
-        if(data){
-            console.log('Supabase 读到 users:', JSON.stringify(data.users));
-            console.log('Supabase 读到 matches 条数:', data.matches ? data.matches.length : 0);
-            // 修复用户数据
+        
+        if(arr && arr.length > 0){
+            let data = arr[0];
             let dbUsers = data.users || {};
+            
+            // 加载用户数据
             for(let key of ['user1','user2','user3','user4']){
                 if(dbUsers[key]){
                     USER_LIST[key] = {
@@ -290,27 +315,43 @@ async function loadData(){
                     USER_LIST[key] = JSON.parse(JSON.stringify(DEFAULT_USERS[key]));
                 }
             }
-            // 修复比赛数据
+            
+            // 加载比赛数据
             matchData = data.matches || [];
-            if(!Array.isArray(matchData) || matchData.length===0){
+            if(!Array.isArray(matchData) || matchData.length === 0){
                 matchData = JSON.parse(JSON.stringify(INIT_MATCHES));
             }
-            matchData.forEach((item, i) => {
+            
+            // 确保每场比赛都有必要字段
+            matchData.forEach((item, idx) => {
+                if(!item.matchDate && INIT_MATCHES[idx]) {
+                    item.matchDate = INIT_MATCHES[idx].matchDate;
+                } else if(!item.matchDate){
+                    item.matchDate = '2026-06-15';
+                }
                 if(!item.odds || !item.odds.home){
-                    item.odds = JSON.parse(JSON.stringify(INIT_MATCHES[i]?.odds || {home:1.5, draw:3.0, away:4.0}));
+                    item.odds = INIT_MATCHES[idx]?.odds ? {...INIT_MATCHES[idx].odds} : {home:1.5, draw:3.0, away:4.0};
                 }
                 if(item.status === undefined) item.status = 0;
                 if(item.result === undefined) item.result = '';
             });
+            
+            console.log('📡 从云端加载数据成功:', {
+                user1_coin: USER_LIST.user1?.coin,
+                user2_coin: USER_LIST.user2?.coin,
+                matches: matchData.length
+            });
+            return true;
         } else {
-            // 数据库无记录，初始化
+            // 数据库为空，初始化默认数据
+            console.log('📡 云端无数据，初始化默认数据');
             USER_LIST = JSON.parse(JSON.stringify(DEFAULT_USERS));
             matchData = JSON.parse(JSON.stringify(INIT_MATCHES));
             await saveData();
+            return true;
         }
-        return true;
     } catch(e){
-        console.error('加载数据失败',e);
+        console.error('❌ 加载数据失败', e);
         // 降级到本地数据
         USER_LIST = JSON.parse(JSON.stringify(DEFAULT_USERS));
         matchData = JSON.parse(JSON.stringify(INIT_MATCHES));
@@ -318,110 +359,161 @@ async function loadData(){
     }
 }
 
-// ====================== 3. 页面切换 ======================
+// 强制刷新数据（从云端重新加载）
+async function forceRefreshData() {
+    console.log('🔄 强制刷新数据...');
+    await loadData();
+    if(loginUser) {
+        renderMain();
+    }
+    alert('✅ 数据已从云端同步！');
+}
+
+// 排行榜专用刷新
+async function refreshRankData() {
+    await loadData();
+    showRank(); // 重新显示排行榜
+}
+
+// 通用同步函数
+async function syncAndRefresh() {
+    await loadData();
+    renderMain();
+    alert('✅ 数据已同步！');
+}
+
+// ====================== 3. 页面与登录 ======================
 function hideAll(){
     document.querySelectorAll('div[id$="Page"],#betLayer,#oddsLayer,#scoreLayer').forEach(el=>el.classList.add('hidden'));
 }
+
 function backMain(){
     hideAll();
     document.getElementById('mainPage').classList.remove('hidden');
     renderMain();
 }
 
-// ====================== 4. 登录逻辑 ======================
-console.log('脚本加载完毕，login 函数已定义');
-function login(){
+async function login(){
     let un = document.getElementById('username').value.trim();
     let pw = document.getElementById('pwd').value.trim();
-    if(!USER_LIST[un]) return alert('用户名不存在');
-    if(USER_LIST[un].pwd !== pw) return alert('密码错误');
+    
+    // 登录前先从云端加载最新数据
+    await loadData();
+    
+    if(!USER_LIST[un]) return alert('❌ 用户名不存在 (可用 user1~user4)');
+    if(USER_LIST[un].pwd !== pw) return alert('❌ 密码错误 (默认123456)');
+    
     loginUser = un;
     hideAll();
     document.getElementById('mainPage').classList.remove('hidden');
-    // 仅管理员显示管理按钮
-    document.getElementById('adminBtn').style.display = (loginUser===ADMIN_USER) ? 'block' : 'none';
+    document.getElementById('adminBtn').style.display = (loginUser === ADMIN_USER) ? 'block' : 'none';
     renderMain();
 }
-function logout(){loginUser='';hideAll();document.getElementById('loginPage').classList.remove('hidden');}
 
-// ====================== 5. 渲染主页赛事列表 ======================
+function logout(){
+    loginUser = '';
+    hideAll();
+    document.getElementById('loginPage').classList.remove('hidden');
+}
+
+// ====================== 4. 渲染赛事列表 ======================
 function renderMain(){
     let u = USER_LIST[loginUser];
-    if(!u) { alert('用户数据异常，请重新登录'); logout(); return; }
+    if(!u) { alert('用户数据异常'); logout(); return; }
     document.getElementById('curUser').innerText = loginUser;
     document.getElementById('coinNum').innerText = u.coin || 0;
     let html = '';
-    if(!Array.isArray(matchData) || matchData.length===0){
-        html = '<p>暂无比赛</p>';
-    } else {
-        matchData.forEach((m,idx)=>{
-            try {
-                let home = m.home || '未知';
-                let away = m.away || '未知';
-                let status = (m.status===undefined) ? 0 : m.status;
-                let statusTxt = status==0 ? '可投注' : (status==1?'待结算':'已结算');
-                let canBet = status===0;
-                let odds = m.odds || {home:'?',draw:'?',away:'?'};
-                let oddsTxt = `主胜${odds.home} | 平${odds.draw} | 客胜${odds.away}`;
-                html += `
-                <div class="match-item">
-                    <div>${home} VS ${away} 【${statusTxt}】</div>
-                    <div class="odds-info">赔率：${oddsTxt}</div>
-                    ${canBet ? `<button style="margin-top:6px" onclick="openBet(${idx})">去投注</button>` : '<p style="color:#aaa">已截止</p>'}
-                </div>
-                `;
-            } catch(e){
-                console.error('渲染比赛项失败 idx='+idx, e);
-            }
-        });
-    }
+    matchData.forEach((m,idx)=>{
+        let deadlinePassed = isBetDeadlinePassed(m.matchDate);
+        let canBetNow = (m.status === 0 && !deadlinePassed);
+        let statusTxt = '';
+        if(m.status === 2) statusTxt = '✅ 已结算';
+        else if(m.status === 1) statusTxt = '⏳ 待结算';
+        else if(deadlinePassed) statusTxt = '🔒 截止投注';
+        else statusTxt = '🔥 可投注';
+        
+        let odds = m.odds;
+        let oddsTxt = `主胜 ${odds.home} | 平 ${odds.draw} | 客胜 ${odds.away}`;
+        html += `
+        <div class="match-item">
+            <div><strong>${m.home} 🆚 ${m.away}</strong> <span style="font-size:13px;background:#253c64;padding:2px 6px;border-radius:12px;">${statusTxt}</span></div>
+            <div class="odds-info">${oddsTxt}</div>
+            <div class="tip" style="font-size:12px;">📅 ${m.matchDate} (投注截止: ${m.matchDate} 00:00)</div>
+            ${canBetNow ? `<button style="margin-top:6px" onclick="openBet(${idx})">🎲 投注此场</button>` : `<button disabled style="background:#555;margin-top:6px">🚫 不可投注</button>`}
+        </div>
+        `;
+    });
     document.getElementById('matchList').innerHTML = html || '<p>暂无比赛</p>';
 }
 
-// ====================== 6. 投注逻辑 ======================
+// ====================== 5. 投注流程 ======================
 function openBet(idx){
     let m = matchData[idx];
+    if(!canPlaceBet(m)){
+        alert(`⛔ 无法投注！\n原因: 比赛已截止或已结束。\n截止时间: ${m.matchDate} 00:00`);
+        return;
+    }
     nowBetMid = idx;
-    document.getElementById('betTitle').innerText = `${m.home} VS ${m.away}`;
-    document.getElementById('betOddsText').innerText = `赔率：主胜${m.odds.home} | 平${m.odds.draw} | 客胜${m.odds.away}`;
+    document.getElementById('betTitle').innerHTML = `${m.home} VS ${m.away}`;
+    document.getElementById('betOddsText').innerHTML = `赔率：主${m.odds.home} 平${m.odds.draw} 客${m.odds.away}`;
+    document.getElementById('deadlineMsg').innerHTML = `⏰ 投注截止时间: ${m.matchDate} 00:00 (赛前封盘)`;
     document.getElementById('betNum').value = '';
     document.getElementById('betLayer').classList.remove('hidden');
 }
+
 function closeBet(){document.getElementById('betLayer').classList.add('hidden');}
 
-function submitBet(){
+async function submitBet(){
     let idx = nowBetMid;
+    if(idx === null) return;
     let m = matchData[idx];
+    
+    // 再次校验
+    if(!canPlaceBet(m)){
+        alert(`❌ 投注失败！比赛已超过投注截止时间 (${m.matchDate} 00:00)`);
+        closeBet();
+        renderMain();
+        return;
+    }
+    
     let betType = document.getElementById('betSelect').value;
     let num = parseInt(document.getElementById('betNum').value);
     let u = USER_LIST[loginUser];
-    if(isNaN(num)||num<1) return alert('输入有效金额');
-    if(num > u.coin) return alert('余额不足');
+    if(isNaN(num)||num<1) return alert('请输入有效的投注金额 (≥1)');
+    if(num > u.coin) return alert('余额不足，当前余额: '+u.coin);
+    
     // 记录投注
     u.coin -= num;
     u.record.push({
-        mid:idx,
-        match:`${m.home}VS${m.away}`,
-        type:betType,
-        betCoin:num,
-        odds:m.odds[betType],
-        status:'pending',
-        profit:0
+        mid: idx,
+        match: `${m.home} VS ${m.away}`,
+        type: betType,
+        betCoin: num,
+        odds: m.odds[betType],
+        status: 'pending',
+        profit: 0,
+        betTime: new Date().toISOString(),
+        matchDate: m.matchDate
     });
-    saveData();
+    
+    await saveData();
     closeBet();
     renderMain();
-    alert('投注成功');
+    alert(`✅ 投注成功！ 已下注 ${num} 金币`);
 }
 
-// ====================== 7. 排行榜、投注记录 ======================
-function showRank(){
+// ====================== 6. 排行榜 ======================
+async function showRank(){
+    // 显示排行榜前先同步最新数据
+    await loadData();
     hideAll();
     document.getElementById('rankPage').classList.remove('hidden');
+    
     let arr = Object.entries(USER_LIST).sort((a,b)=>b[1].coin - a[1].coin);
-    let html = '';
+    let html = '<div class="tip">📊 实时同步自云端数据库</div>';
     arr.forEach(([name,info],i)=>{
-        html += `<div class="rank-item"><span>第${i+1}名 ${name}</span><span>${info.coin}币</span></div>`;
+        let medal = i === 0 ? '🥇' : (i === 1 ? '🥈' : (i === 2 ? '🥉' : '📌'));
+        html += `<div class="rank-item"><span>${medal} ${i+1}. ${name}</span><span>💰 ${info.coin.toLocaleString()} 币</span></div>`;
     });
     document.getElementById('rankBox').innerHTML = html;
 }
@@ -431,168 +523,123 @@ function showRecord(){
     document.getElementById('recordPage').classList.remove('hidden');
     let rec = USER_LIST[loginUser].record;
     let html = '';
-    if(rec.length===0){html='暂无投注';}
-    rec.forEach(r=>{
-        let st = r.status==='pending' ? '待结算' : (r.status==='win'?'盈利':'亏损');
-        html += `<div style="padding:8px 0;border-bottom:1px solid #335">
-        <div>${r.match}</div>
-        <div>投注${r.betCoin}币｜赔率${r.odds}｜${st} ${r.profit>0?`+${r.profit}`:r.profit}</div>
-        </div>`;
-    });
+    if(rec.length === 0){
+        html = '<div class="tip">暂无投注记录，快去试试吧~</div>';
+    } else {
+        rec.slice().reverse().forEach(r=>{
+            let st = r.status==='pending' ? '⏳ 待结算' : (r.status==='win'?'✅ 已盈利':'❌ 亏损');
+            let profitShow = r.profit > 0 ? `+${r.profit}` : r.profit;
+            html += `<div style="padding:8px 0;border-bottom:1px solid #335">
+            <div>⚽ ${r.match}</div>
+            <div>🎯 投注: ${r.betCoin}币 | 赔率${r.odds} | ${st} ${profitShow}币</div>
+            <div class="tip">📆 截止: ${r.matchDate || '未知'} 00:00前</div>
+            </div>`;
+        });
+    }
     document.getElementById('recordBox').innerHTML = html;
 }
 
-// ====================== 8. 管理员功能（仅user1） ======================
+// ====================== 7. 管理员功能 ======================
 function showAdmin(){
-    if(loginUser!==ADMIN_USER) return alert('无管理员权限');
+    if(loginUser !== ADMIN_USER) return alert('无管理员权限');
     hideAll();
     document.getElementById('adminPage').classList.remove('hidden');
     renderAdminMatch();
 }
 
 function renderAdminMatch(){
-    let html='';
+    let html = '';
     matchData.forEach((m,idx)=>{
-        let s = m.status==0?'未开赛':(m.status==1?'待结算':'已结算');
-        let oddsTxt = `主${m.odds.home}/平${m.odds.draw}/客${m.odds.away}`;
+        let s = m.status == 0 ? '⚪未开赛' : (m.status == 1 ? '🟡待结算' : '🟢已结算');
+        let isExpired = isBetDeadlinePassed(m.matchDate);
         html += `<div class="match-item">
-        <div>${m.home} VS ${m.away} <span style="color:${m.status===2?'#aaa':m.status===1?'#ffd700':'#0f0'}">【${s}】</span></div>
-        ${m.result ? `<div style="color:#ff9800;font-size:14px">比分：${m.result}</div>` : ''}
-        <div class="odds-info">当前赔率：${oddsTxt}</div>
-        <button onclick="openOdds(${idx})">修改赔率</button>
-        ${m.status===0 ? `<button onclick="setOver(${idx})">录入比分并结算</button>` : ''}
-        ${m.status===1 ? `<button onclick="calcMatch(${idx})">执行结算</button>` : ''}
+        <div><b>${m.home} vs ${m.away}</b> [${s}] ${isExpired && m.status===0 ? '🔴已过投注期' : ''}</div>
+        <div class="tip">📅 ${m.matchDate} | 截止: ${m.matchDate} 00:00</div>
+        <div>赔率: 主${m.odds.home} / 平${m.odds.draw} / 客${m.odds.away}</div>
+        ${m.result ? `<div style="color:#ffb347">📋 比分: ${m.result}</div>` : ''}
+        <button onclick="openOdds(${idx})">✏️ 修改赔率</button>
+        ${m.status === 0 ? `<button onclick="setOver(${idx})">🎯 录入比分并结算</button>` : ''}
+        ${m.status === 1 ? `<button onclick="calcMatch(${idx})">💸 执行结算</button>` : ''}
         </div>`;
     });
     document.getElementById('adminMatchList').innerHTML = html || '无比赛';
 }
 
-// 打开赔率编辑弹窗
-function openOdds(idx){
-    let m = matchData[idx];
-    nowOddsMid = idx;
-    document.getElementById('oddsMatchTitle').innerText = `${m.home} VS ${m.away}`;
-    document.getElementById('oddsHome').value = m.odds.home;
-    document.getElementById('oddsDraw').value = m.odds.draw;
-    document.getElementById('oddsAway').value = m.odds.away;
-    document.getElementById('oddsLayer').classList.remove('hidden');
-}
+function openOdds(idx){ nowOddsMid=idx; let m=matchData[idx]; document.getElementById('oddsMatchTitle').innerText=`${m.home} VS ${m.away}`; document.getElementById('oddsHome').value=m.odds.home; document.getElementById('oddsDraw').value=m.odds.draw; document.getElementById('oddsAway').value=m.odds.away; document.getElementById('oddsLayer').classList.remove('hidden');}
 function closeOdds(){document.getElementById('oddsLayer').classList.add('hidden');}
+async function saveOdds(){ let idx=nowOddsMid; let h=parseFloat(document.getElementById('oddsHome').value); let d=parseFloat(document.getElementById('oddsDraw').value); let a=parseFloat(document.getElementById('oddsAway').value); if(isNaN(h)||h<1.01||isNaN(d)||d<1.01||isNaN(a)||a<1.01) return alert('赔率必须≥1.01'); matchData[idx].odds={home:h, draw:d, away:a}; await saveData(); closeOdds(); renderAdminMatch(); alert('赔率已更新');}
 
-// 保存赔率
-function saveOdds(){
-    let idx = nowOddsMid;
-    let h = parseFloat(document.getElementById('oddsHome').value);
-    let d = parseFloat(document.getElementById('oddsDraw').value);
-    let a = parseFloat(document.getElementById('oddsAway').value);
-    if(isNaN(h)||h<1.01||isNaN(d)||d<1.01||isNaN(a)||a<1.01){
-        return alert('赔率必须≥1.01');
-    }
-    matchData[idx].odds = {home:h, draw:d, away:a};
-    saveData();
-    closeOdds();
-    renderAdminMatch();
-    alert('赔率已保存');
-}
-
-// 录入比分并结算（一步完成）
-let nowScoreMid = null;
-function setOver(idx){
-    let m = matchData[idx];
-    nowScoreMid = idx;
-    document.getElementById('scoreMatchTitle').innerText = `${m.home} VS ${m.away}`;
-    document.getElementById('scoreInput').value = '';
-    document.getElementById('scoreLayer').classList.remove('hidden');
-}
-function closeScore(){ document.getElementById('scoreLayer').classList.add('hidden'); }
-
-function confirmScore(){
-    let idx = nowScoreMid;
-    if(idx === null) return;
-    let m = matchData[idx];
-    let score = document.getElementById('scoreInput').value.trim();
-    if(!score) return alert('请输入比分');
-    if(!/^\d+-\d+$/.test(score)){
-        return alert('比分格式错误，请使用 数字-数字 格式，如：2-1');
-    }
-    m.result = score;
-    // 直接结算
-    let [hS,aS] = m.result.split('-').map(Number);
-    let realRes = hS>aS ? 'home' : (hS===aS ? 'draw' : 'away');
-    let settleCount = 0;
+let nowScoreMid=null;
+function setOver(idx){ nowScoreMid=idx; let m=matchData[idx]; document.getElementById('scoreMatchTitle').innerText=`${m.home} VS ${m.away}`; document.getElementById('scoreInput').value=''; document.getElementById('scoreLayer').classList.remove('hidden');}
+function closeScore(){document.getElementById('scoreLayer').classList.add('hidden');}
+async function confirmScore(){
+    let idx=nowScoreMid; if(idx===null) return;
+    let m=matchData[idx];
+    let score=document.getElementById('scoreInput').value.trim();
+    if(!score || !/^\d+-\d+$/.test(score)) return alert('比分格式错误，示例: 2-1');
+    m.result=score;
+    let [hS,aS]=m.result.split('-').map(Number);
+    let realRes = hS>aS?'home':(hS===aS?'draw':'away');
+    let settleCount=0;
     Object.values(USER_LIST).forEach(user=>{
         user.record.forEach(rec=>{
             if(rec.mid===idx && rec.status==='pending'){
-                if(rec.type === realRes){
-                    let gain = Math.floor(rec.betCoin * rec.odds);
+                if(rec.type===realRes){
+                    let gain=Math.floor(rec.betCoin * rec.odds);
                     user.coin += gain;
                     rec.profit = gain - rec.betCoin;
-                    rec.status = 'win';
+                    rec.status='win';
                 }else{
                     rec.profit = -rec.betCoin;
-                    rec.status = 'lose';
+                    rec.status='lose';
                 }
                 settleCount++;
             }
-        })
-    })
-    m.status = 2;
-    saveData();
+        });
+    });
+    m.status=2;
+    await saveData();
     closeScore();
     renderAdminMatch();
-    alert(`【${m.home} ${score} ${m.away}】\n比分已录入，结算完成！共结算 ${settleCount} 笔投注。`);
+    alert(`【${m.home} ${score} ${m.away}】\n结算完成！共结算 ${settleCount} 笔投注。`);
 }
 
-// calcMatch 保留作为单独结算入口（状态=1时使用）
-function calcMatch(idx){
-    let m = matchData[idx];
-    let [hS,aS] = m.result.split('-').map(Number);
-    let realRes = hS>aS ? 'home' : (hS===aS ? 'draw' : 'away');
-    let settleCount = 0;
+async function calcMatch(idx){
+    let m=matchData[idx];
+    if(!m.result) return alert('请先录入比分');
+    let [hS,aS]=m.result.split('-').map(Number);
+    let realRes = hS>aS?'home':(hS===aS?'draw':'away');
+    let settleCount=0;
     Object.values(USER_LIST).forEach(user=>{
         user.record.forEach(rec=>{
             if(rec.mid===idx && rec.status==='pending'){
-                if(rec.type === realRes){
-                    let gain = Math.floor(rec.betCoin * rec.odds);
+                if(rec.type===realRes){
+                    let gain=Math.floor(rec.betCoin * rec.odds);
                     user.coin += gain;
-                    rec.profit = gain - rec.betCoin;
-                    rec.status = 'win';
-                }else{
-                    rec.profit = -rec.betCoin;
-                    rec.status = 'lose';
+                    rec.profit=gain - rec.betCoin;
+                    rec.status='win';
+                } else {
+                    rec.profit=-rec.betCoin;
+                    rec.status='lose';
                 }
                 settleCount++;
             }
-        })
-    })
-    m.status = 2;
-    saveData();
+        });
+    });
+    m.status=2;
+    await saveData();
     renderAdminMatch();
-    alert(`结算完成！共结算 ${settleCount} 笔投注。`);
+    alert(`结算完成！共结算 ${settleCount} 笔。`);
 }
 
-// ====================== 9. 初始化 ======================
+// ====================== 8. 初始化 ======================
 (async function init(){
-    // 先用本地数据兜底，保证登录按钮立即可用
     USER_LIST = JSON.parse(JSON.stringify(DEFAULT_USERS));
     matchData = JSON.parse(JSON.stringify(INIT_MATCHES));
     hideAll();
     document.getElementById('loginPage').classList.remove('hidden');
-    // 清除旧的 localStorage
-    localStorage.removeItem('matchData');
-    localStorage.removeItem('betUser');
-    // 异步加载 Supabase 数据
-    try {
-        console.log('正在从 Supabase 加载数据...');
-        let ok = await loadData();
-        if(ok){
-            console.log('Supabase 数据加载成功');
-        } else {
-            console.warn('Supabase 连接失败，使用本地默认数据');
-        }
-    } catch(e){
-        console.error('初始化异常', e);
-    }
+    await loadData();
+    console.log('🎮 系统就绪，投注截止时间基于比赛日00:00自动判定');
 })();
 </script>
 </body>
