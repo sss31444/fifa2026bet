@@ -60,6 +60,8 @@
             justify-content: space-between;
             padding:8px 0;
             border-bottom: 1px solid #2a4580;
+            flex-wrap: wrap;
+            gap:6px;
         }
         .tip {
             font-size:13px;
@@ -84,6 +86,11 @@
             background: #2a6b3c;
             padding: 8px;
             font-size: 14px;
+        }
+        .fold-btn-wrap {
+            display:flex;
+            gap:8px;
+            margin-bottom:12px;
         }
     </style>
 </head>
@@ -118,7 +125,10 @@
         </div>
 
         <div class="card">
-            <h3>📅 2026世界杯赛事（可投注）</h3>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <h3>📅 2026世界杯赛事（可投注）</h3>
+                <button id="userFoldBtn" onclick="toggleUserFoldSettled()" style="width:auto;padding:6px 10px;background:#722ed1;font-size:14px;">📦 展开已结算赛事</button>
+            </div>
             <div id="matchList"></div>
         </div>
     </div>
@@ -147,7 +157,12 @@
             <h3>🛠️ 比赛管理（管理员专用）</h3>
             <p class="tip">可调整赔率、录入比分并结算（投注截止时间自动生效）</p>
             <button onclick="backMain()" style="margin-bottom:12px">← 返回主页</button>
-            <!-- 新增：添加赛事按钮 -->
+
+            <!-- 管理员折叠按钮区域 -->
+            <div class="fold-btn-wrap">
+                <button id="foldSettledBtn" onclick="toggleFoldSettled()" style="background:#722ed1">📦 展开已结算赛事</button>
+            </div>
+
             <button onclick="openAddMatch()" style="background:#09c;margin-bottom:10px;">➕ 添加新赛事</button>
             <div id="adminMatchList"></div>
             <button onclick="backMain()" style="margin-top:12px">← 返回主页</button>
@@ -222,6 +237,13 @@ const DEFAULT_USERS = {
     user3: {pwd:'123456', coin:10000, record:[]},
     user4: {pwd:'123456', coin:10000, record:[]}
 };
+// 用户ID-昵称映射
+const USER_NICK = {
+    user1: "孙剑",
+    user2: "硕哥",
+    user3: "爱徒",
+    user4: "松"
+};
 
 // 2026世界杯 小组赛 (添加日期字段用于投注截止校验)
 const INIT_MATCHES = [
@@ -245,10 +267,10 @@ const INIT_MATCHES = [
     {home:'伊拉克', away:'挪威', odds:{home:2.03, draw:3.89, away:2.64}, status:0, result:'', matchDate:'2026-06-16'},
     {home:'阿根廷', away:'阿尔及利亚', odds:{home:1.28, draw:4.25, away:8.90}, status:0, result:'', matchDate:'2026-06-16'},
     {home:'奥地利', away:'约旦', odds:{home:1.86, draw:3.49, away:3.32}, status:0, result:'', matchDate:'2026-06-16'},
-    {home:'葡萄牙', away:'刚果金', odds:{home:1.14, draw:5.70, away:13.00}, status:0, result:'', matchDate:'2026-06-17'},
-    {home:'英格兰', away:'克罗地亚', odds:{home:2.86, draw:3.75, away:1.95}, status:0, result:'', matchDate:'2026-06-17'},
-    {home:'加纳', away:'巴拿马', odds:{home:1.94, draw:3.20, away:3.60}, status:0, result:'', matchDate:'2026-06-17'},
-    {home:'乌兹别克', away:'哥伦比亚', odds:{home:9.00, draw:4.45, away:1.26}, status:0, result:'', matchDate:'2026-06-17'}
+    {home:'葡萄牙', away:'刚果金', odds:{home:1.14, draw:5.70, away:13.00}, status:0, result:'', matchDate:'2026-06-18'},
+    {home:'英格兰', away:'克罗地亚', odds:{home:2.86, draw:3.75, away:1.95}, status:0, result:'', matchDate:'2026-06-18'},
+    {home:'加纳', away:'巴拿马', odds:{home:1.94, draw:3.20, away:3.60}, status:0, result:'', matchDate:'2026-06-18'},
+    {home:'乌兹别克', away:'哥伦比亚', odds:{home:9.00, draw:4.45, away:1.26}, status:0, result:'', matchDate:'2026-06-18'}
 ];
 
 let loginUser = '';
@@ -257,6 +279,9 @@ let matchData = [];
 let nowBetMid = null;
 let nowOddsMid = null;
 let saveLock = false;
+// 两套独立折叠标记：普通用户首页 / 管理员后台，互不干扰
+let foldSettledUser = true; // 用户页面默认折叠已结算
+let foldSettled = true;     // 管理员页面默认折叠已结算
 
 // ========== 辅助函数 ==========
 function isBetDeadlinePassed(matchDateStr) {
@@ -271,6 +296,34 @@ function canPlaceBet(match) {
     if (!match || match.status !== 0) return false;
     if (isBetDeadlinePassed(match.matchDate)) return false;
     return true;
+}
+
+// ===== 普通用户首页 切换折叠已结算 =====
+function toggleUserFoldSettled(){
+    foldSettledUser = !foldSettledUser;
+    const btn = document.getElementById('userFoldBtn');
+    if(foldSettledUser){
+        btn.innerText = '📦 展开已结算赛事';
+        btn.style.background = '#722ed1';
+    }else{
+        btn.innerText = '📦 折叠已结算赛事';
+        btn.style.background = '#13c2c2';
+    }
+    renderMain();
+}
+
+// ===== 管理员后台 切换折叠已结算 =====
+function toggleFoldSettled(){
+    foldSettled = !foldSettled;
+    const btn = document.getElementById('foldSettledBtn');
+    if(foldSettled){
+        btn.innerText = '📦 展开已结算赛事';
+        btn.style.background = '#722ed1';
+    }else{
+        btn.innerText = '📦 折叠已结算赛事';
+        btn.style.background = '#13c2c2';
+    }
+    renderAdminMatch();
 }
 
 // ====================== 2. Supabase 数据读写 ======================
@@ -433,14 +486,17 @@ function logout(){
     document.getElementById('loginPage').classList.remove('hidden');
 }
 
-// ====================== 4. 渲染赛事列表 ======================
+// ====================== 4. 渲染【普通用户首页】赛事列表（新增折叠过滤） ======================
 function renderMain(){
     let u = USER_LIST[loginUser];
     if(!u) { alert('用户数据异常'); logout(); return; }
-    document.getElementById('curUser').innerText = loginUser;
+    document.getElementById('curUser').innerText = USER_NICK[loginUser];
     document.getElementById('coinNum').innerText = u.coin || 0;
     let html = '';
     matchData.forEach((m,idx)=>{
+        // 用户页面折叠判断：开启折叠则跳过已结算比赛
+        if(foldSettledUser && m.status === 2) return;
+
         let deadlinePassed = isBetDeadlinePassed(m.matchDate);
         let canBetNow = (m.status === 0 && !deadlinePassed);
         let statusTxt = '';
@@ -460,7 +516,8 @@ function renderMain(){
         </div>
         `;
     });
-    document.getElementById('matchList').innerHTML = html || '<p>暂无比赛</p>';
+    if(html === '') html = '<p class="tip">当前已隐藏全部已结算赛事，点击右上角按钮展开查看</p>';
+    document.getElementById('matchList').innerHTML = html;
 }
 
 // ====================== 5. 投注流程 ======================
@@ -519,18 +576,39 @@ async function submitBet(){
     alert(`✅ 投注成功！ 已下注 ${num} 金币`);
 }
 
-// ====================== 6. 排行榜 ======================
+// ====================== 6. 排行榜（核心优化） ======================
 async function showRank(){
     // 显示排行榜前先同步最新数据
     await loadData();
     hideAll();
     document.getElementById('rankPage').classList.remove('hidden');
     
-    let arr = Object.entries(USER_LIST).sort((a,b)=>b[1].coin - a[1].coin);
-    let html = '<div class="tip">📊 实时同步自云端数据库</div>';
-    arr.forEach(([name,info],i)=>{
+    // 转换为数组并计算未结算金额、总金币
+    let userArr = Object.entries(USER_LIST).map(([uid, info])=>{
+        // 求和所有pending未结算投注
+        let unsettled = 0;
+        info.record.forEach(item=>{
+            if(item.status === 'pending') unsettled += item.betCoin;
+        });
+        let total = info.coin + unsettled;
+        return {
+            uid,
+            nick: USER_NICK[uid],
+            balance: info.coin,
+            unsettled,
+            total
+        };
+    });
+    // 按总金币降序排序
+    userArr.sort((a,b)=>b.total - a.total);
+
+    let html = '<div class="tip">📊 实时同步自云端数据库，总金币=余额+未结算投注</div>';
+    userArr.forEach((item,i)=>{
         let medal = i === 0 ? '🥇' : (i === 1 ? '🥈' : (i === 2 ? '🥉' : '📌'));
-        html += `<div class="rank-item"><span>${medal} ${i+1}. ${name}</span><span>💰 ${info.coin.toLocaleString()} 币</span></div>`;
+        html += `<div class="rank-item">
+            <span>${medal} ${item.nick}</span>
+            <span>总金币${item.total.toLocaleString()}（余额：${item.balance.toLocaleString()}币，未结算：${item.unsettled.toLocaleString()}币）</span>
+        </div>`;
     });
     document.getElementById('rankBox').innerHTML = html;
 }
@@ -567,6 +645,9 @@ function showAdmin(){
 function renderAdminMatch(){
     let html = '';
     matchData.forEach((m,idx)=>{
+        // 管理员页面折叠判断
+        if(foldSettled && m.status === 2) return;
+
         let s = m.status == 0 ? '⚪未开赛' : (m.status == 1 ? '🟡待结算' : '🟢已结算');
         let isExpired = isBetDeadlinePassed(m.matchDate);
         html += `<div class="match-item">
@@ -579,7 +660,7 @@ function renderAdminMatch(){
         ${m.status === 1 ? `<button onclick="calcMatch(${idx})">💸 执行结算</button>` : ''}
         </div>`;
     });
-    document.getElementById('adminMatchList').innerHTML = html || '无比赛';
+    document.getElementById('adminMatchList').innerHTML = html || '<p>无未结算赛事，点击上方按钮展开全部</p>';
 }
 
 function openOdds(idx){ nowOddsMid=idx; let m=matchData[idx]; document.getElementById('oddsMatchTitle').innerText=`${m.home} VS ${m.away}`; document.getElementById('oddsHome').value=m.odds.home; document.getElementById('oddsDraw').value=m.odds.draw; document.getElementById('oddsAway').value=m.odds.away; document.getElementById('oddsLayer').classList.remove('hidden');}
