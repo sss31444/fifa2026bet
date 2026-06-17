@@ -147,6 +147,8 @@
             <h3>🛠️ 比赛管理（管理员专用）</h3>
             <p class="tip">可调整赔率、录入比分并结算（投注截止时间自动生效）</p>
             <button onclick="backMain()" style="margin-bottom:12px">← 返回主页</button>
+            <!-- 新增：添加赛事按钮 -->
+            <button onclick="openAddMatch()" style="background:#09c;margin-bottom:10px;">➕ 添加新赛事</button>
             <div id="adminMatchList"></div>
             <button onclick="backMain()" style="margin-top:12px">← 返回主页</button>
         </div>
@@ -191,6 +193,21 @@
             <button class="danger" onclick="closeScore()">取消</button>
         </div>
     </div>
+
+    <!-- 新增：添加赛事弹窗 -->
+    <div id="addMatchLayer" class="hidden" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);padding:20px;z-index:1000;">
+        <div class="card">
+            <h4>新增世界杯赛事</h4>
+            <input id="addHome" placeholder="主队名称">
+            <input id="addAway" placeholder="客队名称">
+            <input id="addDate" placeholder="比赛日期 格式2026-06-18">
+            <input id="addHomeOdds" placeholder="主胜赔率" step="0.01">
+            <input id="addDrawOdds" placeholder="平局赔率" step="0.01">
+            <input id="addAwayOdds" placeholder="客胜赔率" step="0.01">
+            <button onclick="saveNewMatch()">保存新增比赛</button>
+            <button class="danger" onclick="closeAddMatch()">取消</button>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -228,10 +245,10 @@ const INIT_MATCHES = [
     {home:'伊拉克', away:'挪威', odds:{home:2.03, draw:3.89, away:2.64}, status:0, result:'', matchDate:'2026-06-16'},
     {home:'阿根廷', away:'阿尔及利亚', odds:{home:1.28, draw:4.25, away:8.90}, status:0, result:'', matchDate:'2026-06-16'},
     {home:'奥地利', away:'约旦', odds:{home:1.86, draw:3.49, away:3.32}, status:0, result:'', matchDate:'2026-06-16'},
-    {home:'葡萄牙', away:'刚果金', odds:{home:1.14, draw:5.70, away:13.00}, status:0, result:'', matchDate:'2026-06-18'},
-    {home:'英格兰', away:'克罗地亚', odds:{home:2.86, draw:3.75, away:1.95}, status:0, result:'', matchDate:'2026-06-18'},
-    {home:'加纳', away:'巴拿马', odds:{home:1.94, draw:3.20, away:3.60}, status:0, result:'', matchDate:'2026-06-18'},
-    {home:'乌兹别克', away:'哥伦比亚', odds:{home:9.00, draw:4.45, away:1.26}, status:0, result:'', matchDate:'2026-06-18'}
+    {home:'葡萄牙', away:'刚果金', odds:{home:1.14, draw:5.70, away:13.00}, status:0, result:'', matchDate:'2026-06-17'},
+    {home:'英格兰', away:'克罗地亚', odds:{home:2.86, draw:3.75, away:1.95}, status:0, result:'', matchDate:'2026-06-17'},
+    {home:'加纳', away:'巴拿马', odds:{home:1.94, draw:3.20, away:3.60}, status:0, result:'', matchDate:'2026-06-17'},
+    {home:'乌兹别克', away:'哥伦比亚', odds:{home:9.00, draw:4.45, away:1.26}, status:0, result:'', matchDate:'2026-06-17'}
 ];
 
 let loginUser = '';
@@ -384,7 +401,7 @@ async function syncAndRefresh() {
 
 // ====================== 3. 页面与登录 ======================
 function hideAll(){
-    document.querySelectorAll('div[id$="Page"],#betLayer,#oddsLayer,#scoreLayer').forEach(el=>el.classList.add('hidden'));
+    document.querySelectorAll('div[id$="Page"],#betLayer,#oddsLayer,#scoreLayer,#addMatchLayer').forEach(el=>el.classList.add('hidden'));
 }
 
 function backMain(){
@@ -630,6 +647,40 @@ async function calcMatch(idx){
     await saveData();
     renderAdminMatch();
     alert(`结算完成！共结算 ${settleCount} 笔。`);
+}
+
+// ========== 新增：添加赛事配套JS函数 ==========
+function openAddMatch(){
+    document.getElementById('addMatchLayer').classList.remove('hidden');
+    // 清空输入框
+    ['addHome','addAway','addDate','addHomeOdds','addDrawOdds','addAwayOdds'].forEach(id=>document.getElementById(id).value='')
+}
+function closeAddMatch(){
+    document.getElementById('addMatchLayer').classList.add('hidden');
+}
+async function saveNewMatch(){
+    let home = document.getElementById('addHome').value.trim();
+    let away = document.getElementById('addAway').value.trim();
+    let date = document.getElementById('addDate').value.trim();
+    let h = parseFloat(document.getElementById('addHomeOdds').value);
+    let d = parseFloat(document.getElementById('addDrawOdds').value);
+    let a = parseFloat(document.getElementById('addAwayOdds').value);
+    // 简单校验
+    if(!home||!away||!/^\d{4}-\d{2}-\d{2}$/.test(date)||h<1.01||d<1.01||a<1.01){
+        return alert('信息填写错误，请检查名称、日期格式、赔率≥1.01');
+    }
+    // 新增比赛对象，状态默认未开赛
+    matchData.push({
+        home,away,
+        odds:{home:h,draw:d,away:a},
+        status:0,
+        result:'',
+        matchDate:date
+    })
+    await saveData();
+    closeAddMatch();
+    renderAdminMatch();
+    alert('新比赛已同步到云端数据库！');
 }
 
 // ====================== 8. 初始化 ======================
