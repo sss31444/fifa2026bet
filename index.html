@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2026世界杯·四人虚拟投注 | 赛前截止投注</title>
+    <title>2026世界杯·四人虚拟投注</title>
     <style>
         * {
             margin: 0;
@@ -175,12 +175,13 @@
             <h4 id="betTitle"></h4>
             <div class="odds-info" id="betOddsText"></div>
             <div class="tip" id="deadlineMsg" style="color:#ffaa66;"></div>
+            <div class="tip" style="color:#ffd369;">单场最多下注5000金币，每场仅可下注一次</div>
             <select id="betSelect">
                 <option value="home">🏠 主队胜</option>
                 <option value="draw">🤝 平局</option>
                 <option value="away">✈️ 客队胜</option>
             </select>
-            <input type="number" id="betNum" placeholder="投注金币数量" min="1">
+            <input type="number" id="betNum" placeholder="投注金币数量 1~5000" min="1" max="5000">
             <button onclick="submitBet()">✅ 确认投注</button>
             <button class="danger" onclick="closeBet()">❌ 取消</button>
         </div>
@@ -231,6 +232,7 @@ const SUPABASE_URL = 'https://eqteiiwvoxffvhqjavua.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9' + '.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxdGVpaXd2b3hmZnZocWphdnVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MzQ0OTMsImV4cCI6MjA5NjUxMDQ5M30' + '.YcY2hQxqc0ZUHnLgZUdVknWR5LWn4_hc2s1ok20qB4k';
 
 const ADMIN_USER = 'user1';
+const BET_MAX_AMOUNT = 5000; // 单次投注上限
 const DEFAULT_USERS = {
     user1: {pwd:'123456', coin:10000, record:[]},
     user2: {pwd:'123456', coin:10000, record:[]},
@@ -296,6 +298,12 @@ function canPlaceBet(match) {
     if (!match || match.status !== 0) return false;
     if (isBetDeadlinePassed(match.matchDate)) return false;
     return true;
+}
+
+// 判断当前用户是否已经对该场比赛下注过
+function userHasBetMatch(matchIdx) {
+    const records = USER_LIST[loginUser].record;
+    return records.some(r => r.mid === matchIdx);
 }
 
 // ===== 普通用户首页 切换折叠已结算 =====
@@ -499,10 +507,12 @@ function renderMain(){
 
         let deadlinePassed = isBetDeadlinePassed(m.matchDate);
         let canBetNow = (m.status === 0 && !deadlinePassed);
+        let alreadyBet = userHasBetMatch(idx);
         let statusTxt = '';
         if(m.status === 2) statusTxt = '✅ 已结算';
         else if(m.status === 1) statusTxt = '⏳ 待结算';
         else if(deadlinePassed) statusTxt = '🔒 截止投注';
+        else if(alreadyBet) statusTxt = '✅ 已下注本场';
         else statusTxt = '🔥 可投注';
         
         let odds = m.odds;
@@ -512,7 +522,7 @@ function renderMain(){
             <div><strong>${m.home} 🆚 ${m.away}</strong> <span style="font-size:13px;background:#253c64;padding:2px 6px;border-radius:12px;">${statusTxt}</span></div>
             <div class="odds-info">${oddsTxt}</div>
             <div class="tip" style="font-size:12px;">📅 ${m.matchDate} (投注截止: ${m.matchDate} 00:00)</div>
-            ${canBetNow ? `<button style="margin-top:6px" onclick="openBet(${idx})">🎲 投注此场</button>` : `<button disabled style="background:#555;margin-top:6px">🚫 不可投注</button>`}
+            ${canBetNow && !alreadyBet ? `<button style="margin-top:6px" onclick="openBet(${idx})">🎲 投注此场</button>` : `<button disabled style="background:#555;margin-top:6px">🚫 不可投注</button>`}
         </div>
         `;
     });
@@ -523,8 +533,14 @@ function renderMain(){
 // ====================== 5. 投注流程 ======================
 function openBet(idx){
     let m = matchData[idx];
+    // 基础可投校验
     if(!canPlaceBet(m)){
         alert(`⛔ 无法投注！\n原因: 比赛已截止或已结束。\n截止时间: ${m.matchDate} 00:00`);
+        return;
+    }
+    // 本场是否已经下注
+    if(userHasBetMatch(idx)){
+        alert('⛔ 限制提示：你已经对本场比赛完成下注，每场仅可下注一次！');
         return;
     }
     nowBetMid = idx;
@@ -541,10 +557,17 @@ async function submitBet(){
     let idx = nowBetMid;
     if(idx === null) return;
     let m = matchData[idx];
+    let u = USER_LIST[loginUser];
     
-    // 再次校验
+    // 双重校验：防止弹窗绕过直接提交
     if(!canPlaceBet(m)){
         alert(`❌ 投注失败！比赛已超过投注截止时间 (${m.matchDate} 00:00)`);
+        closeBet();
+        renderMain();
+        return;
+    }
+    if(userHasBetMatch(idx)){
+        alert('❌ 投注失败：本场你已下注，不可重复投注！');
         closeBet();
         renderMain();
         return;
@@ -552,8 +575,10 @@ async function submitBet(){
     
     let betType = document.getElementById('betSelect').value;
     let num = parseInt(document.getElementById('betNum').value);
-    let u = USER_LIST[loginUser];
+    
+    // 金额校验：1 ~ BET_MAX_AMOUNT
     if(isNaN(num)||num<1) return alert('请输入有效的投注金额 (≥1)');
+    if(num > BET_MAX_AMOUNT) return alert(`投注上限${BET_MAX_AMOUNT}金币，不可超过该数值！`);
     if(num > u.coin) return alert('余额不足，当前余额: '+u.coin);
     
     // 记录投注
